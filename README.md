@@ -40,7 +40,7 @@ tqdm
 ├── Dinov2L_pipeline    # Folder containing the training, test, and evaluation pipeline
 │   ├── Dinov2L.py      # Main training and evaluation pipeline
 │   ├── dataloader.py   # Dataset classes and data loading utilities
-│   ├── xAI.py          # Explainable AI visualization tools
+│   └── xAI.py          # Explainable AI visualization tools
 ├── LICENSE.md          # Project license
 └── README.md           # This file
 ```
@@ -134,11 +134,49 @@ The framework achieves the following macro-averaged F1-scores on the test sets:
 If you use this code in your research, please cite our paper:
 
 ```bibtex
-@article{mietkiewicz2025skin,
-  title={The Skin Game: Revolutionizing Standards for AI Dermatology Model Comparison},
-  author={Miętkiewicz, Łukasz and Ciechanowski, Leon and Jemielniak, Dariusz},
-  journal={arxiv},
-  year={2025}
+@ARTICLE{Mietkiewicz2025-av,
+  title         = "The skin game: Revolutionizing standards for {AI} dermatology
+                   model comparison",
+  author        = "Miętkiewicz, Łukasz and Ciechanowski, Leon and Jemielniak,
+                   Dariusz",
+  journal       = "arXiv [eess.IV]",
+  abstract      = "Deep Learning approaches in dermatological image
+                   classification have shown promising results, yet the field
+                   faces significant methodological challenges that impede
+                   proper evaluation. This paper presents a dual contribution:
+                   first, a systematic analysis of current methodological
+                   practices in skin disease classification research, revealing
+                   substantial inconsistencies in data preparation, augmentation
+                   strategies, and performance reporting; second, a
+                   comprehensive training and evaluation framework demonstrated
+                   through experiments with the DINOv2-Large vision transformer
+                   across three benchmark datasets (HAM10000, DermNet, ISIC
+                   Atlas). The analysis identifies concerning patterns,
+                   including pre-split data augmentation and validation-based
+                   reporting, potentially leading to overestimated metrics,
+                   while highlighting the lack of unified methodology standards.
+                   The experimental results demonstrate DINOv2's performance in
+                   skin disease classification, achieving macro-averaged
+                   F1-scores of 0.85 (HAM10000), 0.71 (DermNet), and 0.84 (ISIC
+                   Atlas). Attention map analysis reveals critical patterns in
+                   the model's decision-making, showing sophisticated feature
+                   recognition in typical presentations but significant
+                   vulnerabilities with atypical cases and composite images. Our
+                   findings highlight the need for standardized evaluation
+                   protocols and careful implementation strategies in clinical
+                   settings. We propose comprehensive methodological
+                   recommendations for model development, evaluation, and
+                   clinical deployment, emphasizing rigorous data preparation,
+                   systematic error analysis, and specialized protocols for
+                   different image types. To promote reproducibility, we provide
+                   our implementation code through GitHub. This work establishes
+                   a foundation for rigorous evaluation standards in
+                   dermatological image classification and provides insights for
+                   responsible AI implementation in clinical dermatology.",
+  month         =  feb,
+  year          =  2025,
+  archivePrefix = "arXiv",
+  primaryClass  = "eess.IV"
 }
 ```
 
