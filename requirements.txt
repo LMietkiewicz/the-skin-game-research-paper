@@ -1,0 +1,12 @@
+# not finished yet, but the main dependencies are here. 
+transformers==5.7.0
+accelerate
+evaluate
+numpy
+pandas
+scikit-learn
+matplotlib
+seaborn
+tqdm
+psutil
+GPUtil

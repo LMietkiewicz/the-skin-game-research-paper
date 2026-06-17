@@ -1,3 +1,4 @@
+# The title and the readme are to be changed
 # The Skin Game: AI Dermatology Model Evaluation Framework
 
 This repository contains the implementation code for the paper "The Skin Game: Revolutionizing Standards for AI Dermatology Model Comparison". The framework provides a comprehensive approach to training and evaluating deep learning models for dermatological image classification, with a particular focus on methodology standardization and reproducibility.
