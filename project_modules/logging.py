@@ -38,10 +38,6 @@ def _to_jsonable(value: Any) -> Any:
     """Coerce numpy scalars/arrays to native Python types.
 
     value[np.generic|np.ndarray|Any] -> output[python scalar|list|Any]
-
-    Metrics from sklearn/torch are often np.float32 / np.int64, which json.dump
-    can't serialize AND which fail isinstance(v, float), silently dropping out of
-    mean/std aggregation. Coercing at ingestion fixes both at once.
     """
     if isinstance(value, np.generic):
         return value.item()
@@ -64,8 +60,8 @@ def _capture_env() -> Dict[str, Any]:
     try:
         env["cuda"] = torch.version.cuda
         env["gpu"] = torch.cuda.get_device_name(0) if torch.cuda.is_available() else "cpu"
-    except Exception:  # noqa: BLE001
-        pass
+    except Exception as e:  # noqa: BLE001
+        env["capture_error"] = repr(e)
     return env
 
 
@@ -113,8 +109,18 @@ class ExperimentLogger:
         d.mkdir(parents=True, exist_ok=True)
         return d
 
-    def xai_dir_for(self, dataset: str) -> Path:
-        d = self.xai_dir / dataset
+    XAI_SLICES = ("in_distribution", "cross")
+
+    def xai_dir_for(self, dataset: str, slice: str) -> Path:
+        """xai/{dataset}/{slice}/ -- `dataset` is the TRAIN dataset, `slice` says
+        whether the explained test set was its own holdout or the foreign one.
+        Separate dirs are mandatory, not cosmetic: analyze() names files by sample
+        index (correct_7.png), so both slices collide on filename with different
+        images if they share a directory.
+        """
+        if slice not in self.XAI_SLICES:
+            raise ValueError(f"unknown xai slice {slice!r}; expected one of {self.XAI_SLICES}")
+        d = self.xai_dir / dataset / slice
         d.mkdir(parents=True, exist_ok=True)
         return d
 
@@ -135,21 +141,21 @@ class ExperimentLogger:
         return torch.load(self.data_dir_for(dataset) / "splits.pt")
 
     # --- the receipt: inputs only -------------------------------------------
-    def write_receipt(self, *, frame: Dict[str, Any], configs, training_args_template: Dict[str, Any],
-                      model_repository: str) -> None:
+    def write_receipt(self, *, evaluation_protocol: Dict[str, Any], experiment_configs: List[Any], 
+                      training_args_base: Dict[str, Any], model_repository: str) -> None:
         """Assemble and write config.json: the study's reproduction inputs.
 
-        frame                  -- N_SPLITS / TEST_SIZE / RANDOM_STATE etc.
-        configs                -- the CONFIGS list (the 'lab notebook'); asdict'd here.
-        training_args_template -- args.to_dict() of the shared HF TrainingArguments
+        evaluation_protocol    -- N_SPLITS / TEST_SIZE / RANDOM_STATE etc.
+        experiment_configs     -- the CONFIGS list (the 'lab notebook'); asdict'd here.
+        training_args_base     -- args.to_dict() of the shared HF TrainingArguments
                                   (per-config deltas live in configs[].num_train_epochs).
         """
         receipt = {
-            "frame": frame,
+            "evaluation_protocol": evaluation_protocol,
             "model_repository": model_repository,
-            "configs": [asdict(c) for c in configs],
-            "training_args_template": training_args_template,
-            "data": self._data_meta,
+            "experiment_configs": [asdict(c) for c in experiment_configs],
+            "training_args_base": training_args_base,
+            "splits_info": self._data_meta,
             "env": _capture_env(),
         }
         with open(self.config_file, "w") as f:
@@ -180,7 +186,7 @@ class ExperimentLogger:
         cdir.mkdir(parents=True, exist_ok=True)
         self._plot_confusion_matrix(cm, class_names, cdir / f"{arm_name}.png")
 
-    # --- human-readable logging (unchanged behavior, routed to run_dir) ------
+    # --- human-readable logging ------
     def log_message(self, message: str) -> None:
         ts = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         with open(self.main_log_file, "a") as f:
@@ -268,14 +274,16 @@ class ExperimentLogger:
             return np.asarray(dataset.targets)
         base = getattr(dataset, "dataset", None)
         idx = getattr(dataset, "indices", None)
-        if base is not None and idx is not None and hasattr(base, "targets"):
-            return np.asarray(base.targets)[idx]
+        if base is not None and idx is not None:
+            parent = self._extract_targets(base)      
+            if parent is not None:
+                return np.asarray(parent)[idx]
         return None
 
     def _class_names(self, dataset) -> Optional[List[str]]:
-        # canonical CLASS_TO_IDX replaced the LabelEncoder; read the dataset property.
-        base = getattr(dataset, "dataset", dataset)
-        names = getattr(base, "class_names", None)
+        while not hasattr(dataset, "class_names") and hasattr(dataset, "dataset"):
+            dataset = dataset.dataset
+        names = getattr(dataset, "class_names", None)
         return list(names) if names is not None else None
 
     def _get_class_distribution(self, dataset) -> Dict[str, int]:
